@@ -1,0 +1,145 @@
+/**
+ * The manager parameters are used when building the application. Any change
+ * on these parameters requires a new build to take effect. The default values
+ * are declared in this file, but the parameters can be overwritten using RunRules.
+ */
+
+package motionEstimation;
+
+import com.maxeler.maxcompiler.v2.build.EngineParameters;
+import com.maxeler.maxcompiler.v2.managers.BuildConfig;
+import com.maxeler.maxcompiler.v2.managers.BuildConfig.Effort;
+import com.maxeler.maxcompiler.v2.managers.BuildConfig.Switch;
+import com.maxeler.maxcompiler.v2.managers.DFEModel;
+import com.maxeler.maxcompiler.v2.managers.custom.CustomManager;
+import com.maxeler.maxcompiler.v2.managers.custom.stdlib.DebugLevel;
+import com.maxeler.maxcompiler.v2.managers.standard.Manager;
+
+public class MEParams extends EngineParameters{
+
+	public static final int burstSizeBits = 1536;//FIXME: this is not true for Isca or MAX2
+	public static final int burstMode = 4;
+
+	public MEParams(final String[] args) {
+		super(args);
+	}
+
+	public MEParams(final String[] args, final String... staticOverrides) {
+		super(args, staticOverrides);
+	}
+
+	private static final String s_inputWidth   = "inputWidth";
+	private static final String s_bitDepth     = "bitDepth";
+	private static final String s_frequency    = "frequency";
+	private static final String s_tag          = "tag";
+	private static final String s_streamStatus = "enableStreamStatus";
+	private static final String s_effort       = "buildEffort";
+	private static final String s_hm71Compat   = "isHM71Compat";
+	private static final String s_isDummy      = "isDummy";
+	private static final String s_hasPCC       = "hasPCC";
+	private static final String s_physicalSynthesis = "enablePhysicalSynthesis";
+	private static final String s_lowLatency   = "useLowLatency";
+	private static String s_pipes              = "numPipes";
+	private static String s_blockSize          = "blockSize";
+	private static String s_srcFromDram        = "srcInDram";
+
+
+	@Override
+	protected void declarations() {
+		declareParam(s_inputWidth,           DataType.INT,      16);
+		declareParam(s_bitDepth,             DataType.INT,      10);
+		declareParam(s_frequency,            DataType.INT,      200);
+		declareParam(s_tag,                  DataType.STRING,   "");
+		declareParam(s_parameterDFE,         DataType.DFEMODEL, DFEModel.MAIA);
+		declareParam(s_parameterTarget,      Target.class,      Target.DFE);
+		declareParam(s_streamStatus,         DataType.BOOL,     false);
+		declareParam(s_effort,               Effort.class,      Effort.HIGH);
+		declareParam(s_hm71Compat,           DataType.BOOL,     false);
+		declareParam(s_isDummy,              DataType.BOOL,     false);
+		declareParam(s_hasPCC,               DataType.BOOL,     false);
+		declareParam(s_physicalSynthesis,    DataType.BOOL,     false);
+		declareParam(s_lowLatency,           DataType.BOOL,     false);
+		declareParam(s_parameterMaxFileName, DataType.STRING,   "ME");
+		declareParam(s_pipes,                DataType.INT,      8);
+		declareParam(s_blockSize,            DataType.INT,      32);
+		declareParam(s_srcFromDram,          DataType.BOOL,     false);
+	}
+
+	private DebugLevel generateDebugLevel() {
+		return new DebugLevel() {
+			@Override
+			public boolean hasStreamStatus() {
+				return getEnableStreamStatus();
+			}
+		};
+	}
+
+
+	public boolean getEnableStreamStatus() {
+		return (Boolean)getParam(s_streamStatus) || getParam("target") == Target.DFE_SIM;
+	}
+
+	public Effort getBuildEffort() {
+		return getParam(s_effort);
+	}
+
+	public void applyParams(CustomManager mgr) {
+		mgr.config.setDefaultStreamClockFrequency(getFrequency());
+		mgr.debug.setDebugLevel(generateDebugLevel());
+		BuildConfig buildConfig = mgr.getBuildConfig();
+		applyParams(buildConfig);
+		mgr.addMaxFileConstant(s_hm71Compat,  isHM71Compat() ? 1 : 0);
+		mgr.addMaxFileConstant(s_bitDepth,  getBitDepth());
+		mgr.addMaxFileConstant(s_lowLatency, useLowLatency()?1:0);
+		mgr.config.setPipelinedComputeController(hasPCC());
+		mgr.getCurrentKernelConfig().debug.setDummyBuildEnabled(isDummy());
+	}
+
+	public void applyParams(BuildConfig buildConfig) {
+		buildConfig.setBuildEffort(getBuildEffort());
+		if((Boolean)getParam(s_physicalSynthesis) == true) {
+			buildConfig.setEnablePhysicalSynthesisRegDuplication(Switch.ON);
+		}
+		buildConfig.setMPPRCostTableSearchRange(getMPPRStartCT(), getMPPREndCT());
+		buildConfig.setMPPRParallelism(getMPPRThreads());
+		buildConfig.setMPPRRetryNearMissesThreshold(getMPPRRetryThreshold());
+
+	}
+
+	public void applyParams(Manager mgr) {
+		mgr.setClockFrequency(getFrequency());
+		mgr.setEnableStreamStatusBlocks(getEnableStreamStatus());
+		BuildConfig buildConfig = mgr.getBuildConfig();
+		applyParams(buildConfig);
+		mgr.addMaxFileConstant(s_hm71Compat,  isHM71Compat()?1:0);
+		mgr.addMaxFileConstant(s_bitDepth,  getBitDepth());
+		mgr.addMaxFileConstant(s_lowLatency, useLowLatency()?1:0);
+		mgr.getCurrentKernelConfig().debug.setDummyBuildEnabled(isDummy());
+	}
+
+	@Override
+	protected void validate() {
+		if (getBitDepth() != 8 && getBitDepth() != 10) {
+			throw new IllegalArgumentException("Allowed bit depth values are 8 and 10, not "+ getBitDepth());
+		}
+		if (getBitDepth() > getInputWidth()) {
+			throw new IllegalArgumentException("Input width must be >= bit depth");
+		}
+	}
+
+	public int getBitDepth()         { return getParam(s_bitDepth); }
+	public int getInputWidth()       { return getParam(s_inputWidth); }
+	public int getFrequency()        { return getParam(s_frequency); }
+	public String getTag()           { return getParam(s_tag); }
+	public boolean isHM71Compat()    { return getParam(s_hm71Compat); }
+	public boolean isDummy()         { return getParam(s_isDummy); }
+	public boolean hasPCC()          { return getParam(s_hasPCC); }
+	public boolean useLowLatency()   { return getParam(s_lowLatency); }
+	public int     getNumPipes()     { return getParam(s_pipes); }
+	public int     getBlockSize()    { return getParam(s_blockSize); }
+	public boolean getSrcFromDram()  { return getParam(s_srcFromDram); }
+
+
+	@Override
+	public String getBuildName()     {return getMaxFileName() + "_" + getTarget() + "_"+ getNumPipes() + "pipes_" + getFrequency() + "MHz_" +  getTag(); }
+}

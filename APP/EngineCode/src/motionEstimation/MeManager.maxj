@@ -1,0 +1,55 @@
+package motionEstimation;
+
+
+import com.maxeler.maxcompiler.v2.managers.custom.CustomManager;
+import com.maxeler.maxcompiler.v2.managers.custom.blocks.KernelBlock;
+import com.maxeler.maxcompiler.v2.managers.custom.stdlib.DebugLevel;
+import com.maxeler.maxcompiler.v2.managers.engine_interfaces.EngineInterface;
+
+public class MeManager extends CustomManager {
+
+	private final static String s_coarseKernelName        = "CoarseMeKernel";
+
+	public MeManager(MEParams params) {
+		super(params);
+		config.setAllowNonMultipleTransitions(true);
+		getCurrentKernelConfig().debug.setEnableLatencyAnnotation(false);
+		getCurrentKernelConfig().optimization.setConditionalArithmeticEnabled(false);
+
+		DebugLevel debugLevel = new DebugLevel();
+		debugLevel.setHasStreamStatus(params.getEnableStreamStatus());
+		debug.setDebugLevel(debugLevel);
+
+		CoarseMeKernel coarseKernel = new CoarseMeKernel(makeKernelParameters(s_coarseKernelName), params.getBlockSize(),
+				params.getNumPipes(), 16);
+		KernelBlock coarseKB = addKernel(coarseKernel);
+
+		coarseKB.getInput("source")    <== addStreamFromCPU("source");
+		coarseKB.getInput("reference") <== addStreamFromCPU("reference");
+
+		addStreamToCPU("mv") <== coarseKB.getOutput("mv");
+
+		createSLiCinterface(makeInterface(params.getNumPipes(), params.getBlockSize(), params.getSrcFromDram()));
+		writeToMaxfile(params);
+	}
+
+	private void writeToMaxfile(MEParams params){
+		addMaxFileConstant("numPipes" , params.getNumPipes());
+		addMaxFileConstant("blockSize", params.getBlockSize());
+		addMaxFileConstant("windowX"  , CoarseMeScalars.windowX);
+		addMaxFileConstant("windowY"  , CoarseMeScalars.windowY);
+	}
+
+	private EngineInterface makeInterface(int numPipes, int blockSize, boolean srcFromDram) {
+		EngineInterface ei = new EngineInterface("default");
+		return ei;
+	}
+
+	public static void main(String[] args) {
+		MEParams params = new MEParams(args);
+
+		MeManager manager = new MeManager(params);
+		manager.build();
+	}
+
+}

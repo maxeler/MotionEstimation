@@ -1,0 +1,279 @@
+/*********************************************************************
+ * Maxeler Technologies : Motion Estimation                          *
+ *                                                                   *
+ * Version: 1.0                                                      *
+ * Date:    12th August 2014                                         *
+ *                                                                   *
+ * DFE code source file                                              *
+ *                                                                   *
+ *********************************************************************/
+
+package motionEstimation;
+
+
+import com.maxeler.maxcompiler.v2.kernelcompiler.KernelLib;
+import com.maxeler.maxcompiler.v2.kernelcompiler.SMIO;
+import com.maxeler.maxcompiler.v2.kernelcompiler.types.base.DFEType;
+import com.maxeler.maxcompiler.v2.kernelcompiler.types.base.DFEVar;
+import com.maxeler.maxcompiler.v2.statemachine.DFEsmInput;
+import com.maxeler.maxcompiler.v2.statemachine.DFEsmOutput;
+import com.maxeler.maxcompiler.v2.statemachine.DFEsmStateEnum;
+import com.maxeler.maxcompiler.v2.statemachine.DFEsmStateValue;
+import com.maxeler.maxcompiler.v2.statemachine.DFEsmValue;
+import com.maxeler.maxcompiler.v2.statemachine.kernel.KernelStateMachine;
+import com.maxeler.maxcompiler.v2.statemachine.types.DFEsmValueType;
+import com.maxeler.maxcompiler.v2.utils.MathUtils;
+
+/**
+ * This class abstracts the controller used for enabling and disabling buffer inputs and outputs.
+ * It also determines which buffer to read from.
+ *
+ */
+public class CoarseMeBufferControl extends KernelLib {
+	private enum BufferModes {
+		FILLING_BUFFER,
+		RUNNING,
+	}
+
+	private final DFEVar m_referenceInputEnable;
+	private final DFEVar m_outputEnable;
+	private final DFEVar m_whichBuffer;
+	private final DFEVar m_readEnableBuffer1;
+	private final DFEVar m_readEnableBuffer2;
+
+	/**
+	 * The main constructor. The constructor instantiates a state machine and provides and processes
+	 * the inputs and outputs of the state machine.
+	 * @param scalars The scalar inputs and constants of the Kernel
+	 */
+	protected CoarseMeBufferControl (CoarseMeScalars scalars) {
+		super(scalars.getKernel());
+
+		SMIO buffCtrl = this.addStateMachine("bufferControl", new BufferStateMachine(this, scalars.blockSize, scalars.numPipes,
+                scalars.maxWidthInBlocks, scalars.maxHeightInBlocks));
+
+		DFEType blockCountType = dfeUInt(MathUtils.bitsToRepresentUnsigned(scalars.maxBlocks));
+
+		buffCtrl.getInput("blocksPerPicture")       <== scalars.numBlocks;
+		buffCtrl.getInput("blocksToFillBuffer")     <== scalars.blocksToFill;
+		buffCtrl.getInput("blocksToCompleteBuffer") <== scalars.blocksToComplete;
+		buffCtrl.getInput("blocksPerRow")           <== scalars.widthInBlocks.cast(blockCountType);
+
+		m_referenceInputEnable = buffCtrl.getOutput("inputReferenceEnable");
+		m_outputEnable         = buffCtrl.getOutput("isRunning");
+		m_whichBuffer          = buffCtrl.getOutput("readBuffer");
+
+		// This is the number of cycles that it takes to read all the reference blocks required for the computation
+		int cyclesToReadAhead = MathUtils.ceilDivide(scalars.blockSize + scalars.numPipes - 1, scalars.numPipes);
+
+		DFEVar readEnableAhead1 = m_outputEnable & ~m_whichBuffer;
+		DFEVar readEnableAhead2 = m_outputEnable &  m_whichBuffer;
+		for (int i = 1; i < cyclesToReadAhead; i++) {  //concatenates future output enables into a single variable
+			DFEVar futureOutEnable = stream.offset(m_outputEnable, i);
+			readEnableAhead1 = readEnableAhead1 # ( stream.offset(~m_whichBuffer, i) & futureOutEnable);
+			readEnableAhead2 = readEnableAhead2 # ( stream.offset( m_whichBuffer, i) & futureOutEnable);
+		}
+
+		m_readEnableBuffer1 = readEnableAhead1 !== 0;
+		m_readEnableBuffer2 = readEnableAhead2 !== 0;
+
+
+	}
+
+
+	public class BufferStateMachine extends KernelStateMachine {
+
+		private final int m_maxBlocksPerPicture;
+		private final int m_inputsPerBlock;
+		private final int m_sadsPerWindow;
+		private final int m_sadsPerLine;
+		private final int m_blocksReadOnEdge;
+
+		private final DFEsmStateEnum<BufferModes> m_bufferMode;
+
+		private final DFEsmStateValue m_whichBuffer;
+		private final DFEsmStateValue m_inputCount;
+		private final DFEsmStateValue m_fillCount;
+		private final DFEsmStateValue m_refBlockCount;
+		private final DFEsmStateValue m_srcBlockCount;
+		private final DFEsmStateValue m_srcBlockRowCount;
+		private final DFEsmStateValue m_windowCount;
+		private final DFEsmStateValue m_lineCount;
+		private final DFEsmStateValue m_edgeBlock;
+
+
+		private final DFEsmInput m_blocksToFillBuffer;
+		private final DFEsmInput m_blocksToCompleteBuffer;
+		private final DFEsmInput m_blocksPerPicture;
+		private final DFEsmInput m_blocksPerRow;
+
+		private final DFEsmOutput m_inputReferenceEnable;
+		private final DFEsmOutput m_isRunning;
+		private final DFEsmOutput m_readBuffer;
+
+		private final DFEsmValueType blockCountType;
+
+		/**
+		 * The constructor of the state machine. It initialises the state machine and defines the input/outputs.
+		 * @param owner              The KernelLib object that has instantiated this state machine
+		 * @param blockSize          The length of a side of a block
+		 * @param pipes              The number of pipes in the system
+		 * @param maxWidthInBlocks   Maximum width of a frame in the units of blocks
+		 * @param maxHeightInBlocks  Maximum height of a frame in the units of blocks
+		 */
+		public BufferStateMachine(final KernelLib owner, int blockSize, int pipes, int maxWidthInBlocks, int maxHeightInBlocks) {
+			super(owner);
+			m_maxBlocksPerPicture = maxWidthInBlocks * maxHeightInBlocks;
+			// Fill to entire width of picture rather than window, since that is input order.
+			m_inputsPerBlock = blockSize * blockSize / pipes;
+
+			m_blocksReadOnEdge = 1 + (CoarseMeScalars.windowX / 2) / blockSize;
+
+			m_sadsPerLine   = CoarseMeScalars.windowX / pipes;
+			m_sadsPerWindow = m_sadsPerLine * CoarseMeScalars.windowY;
+
+			m_bufferMode = state.enumerated(BufferModes.class, BufferModes.FILLING_BUFFER);
+
+			blockCountType = dfeUInt(MathUtils.bitsToRepresentUnsigned(m_maxBlocksPerPicture));
+
+			m_whichBuffer = state.value(dfeBool(), false);
+			m_inputCount  = state.value(dfeUInt(MathUtils.bitsToRepresentUnsigned(m_inputsPerBlock)), 0);
+			m_fillCount   = state.value(blockCountType, 0);
+			m_refBlockCount  = state.value(blockCountType, 0);
+			m_srcBlockCount  = state.value(blockCountType, 0);
+			m_srcBlockRowCount  = state.value(blockCountType, 0);
+			m_windowCount = state.value(dfeUInt(MathUtils.bitsToRepresentUnsigned(m_sadsPerWindow - 1)), 0);
+			m_lineCount   = state.value(dfeUInt(MathUtils.bitsToRepresentUnsigned(m_sadsPerLine   - 1)), 0);
+			m_edgeBlock   = state.value(dfeBool(), true);
+
+			m_blocksPerPicture       = io.input("blocksPerPicture",       blockCountType);
+			m_blocksPerRow           = io.input("blocksPerRow",           blockCountType);
+			m_blocksToFillBuffer     = io.input("blocksToFillBuffer",     blockCountType);
+			m_blocksToCompleteBuffer = io.input("blocksToCompleteBuffer", blockCountType);// blocksPerPicture - blocksToFillBuffer
+
+			m_inputReferenceEnable = io.output("inputReferenceEnable", dfeBool());
+			m_isRunning            = io.output("isRunning", dfeBool());
+			m_readBuffer           = io.output("readBuffer", dfeBool());
+		}
+
+		/**
+		 * This function is executed every cycle and it determines the state variables of the next cycle
+		 */
+		@Override
+		protected void nextState() {
+			SWITCH(m_bufferMode) {
+				CASE(BufferModes.FILLING_BUFFER) {
+					m_refBlockCount.next <== 0;
+					IF (m_inputCount < m_inputsPerBlock - 1) {
+						m_inputCount.next <== m_inputCount + 1;
+					} ELSE {
+						m_inputCount.next <== 0;
+						IF (m_fillCount + 1 < m_blocksToFillBuffer) {
+							m_fillCount.next <== m_fillCount + 1;
+						} ELSE {
+							m_bufferMode.next <== BufferModes.RUNNING;
+							m_fillCount.next <== 0;
+						}
+					}
+				}
+				CASE(BufferModes.RUNNING) {
+					IF (m_inputCount < m_inputsPerBlock - 1) {
+						m_inputCount.next <== m_inputCount + 1;
+					} ELSE {
+						m_inputCount.next <== 0;
+					}
+					IF (m_lineCount < m_sadsPerLine - 1) {
+						m_lineCount.next <== m_lineCount + 1;
+						m_whichBuffer.next <== m_whichBuffer;
+					} ELSE {
+						m_lineCount.next <== 0;
+						m_whichBuffer.next <== m_whichBuffer ^ 1;
+					}
+					IF (m_windowCount < m_sadsPerWindow - 1) {
+						m_windowCount.next <== m_windowCount + 1;
+					} ELSE {
+						m_refBlockCount.next <== m_refBlockCount + 1;
+						m_windowCount.next <== 0;
+						IF (m_srcBlockRowCount + 1 === m_blocksPerRow | m_srcBlockRowCount + 2 === m_blocksPerRow) {
+							m_edgeBlock.next <== true;
+						} ELSE {
+							m_edgeBlock.next <== false;
+						}
+						IF (m_srcBlockCount + 1 < m_blocksPerPicture) {
+							m_srcBlockCount.next <== m_srcBlockCount + 1;
+							IF (m_srcBlockRowCount + 1 < m_blocksPerRow) {
+								m_srcBlockRowCount.next <== m_srcBlockRowCount + 1;
+							} ELSE {
+								m_srcBlockRowCount.next <== 0;
+							}
+						} ELSE {
+							m_srcBlockCount.next <== 0;
+							m_srcBlockRowCount.next <== 0;
+							m_bufferMode.next <== BufferModes.FILLING_BUFFER;
+						}
+					}
+				}
+			}
+		}
+
+
+		/**
+		 * This function is executed every cycle and determines the outputs of the state machine, based
+		 * on the current state variables.
+		 */
+		@Override
+		protected void outputFunction() {
+			final DFEsmValue bufferNotComplete = m_refBlockCount < m_blocksToCompleteBuffer;
+			final DFEsmValue inputEnable = bufferNotComplete & ((m_windowCount < m_inputsPerBlock) | (m_edgeBlock & m_windowCount < m_blocksReadOnEdge * m_inputsPerBlock));
+			SWITCH(m_bufferMode) {
+				CASE(BufferModes.FILLING_BUFFER) {
+					m_inputReferenceEnable <== true;
+					m_isRunning <== false;
+					m_readBuffer <== false;
+				}
+				CASE(BufferModes.RUNNING) {
+					m_inputReferenceEnable <== inputEnable;
+					m_isRunning <== true;
+					m_readBuffer <== m_whichBuffer;
+				}
+			}
+		}
+	}
+
+	/**
+	 * This function returns the buffer that should be used to read the reference block
+	 * @return false, if buffer 1 is to be read. true, if buffer 2 is to be read
+	 */
+	public DFEVar getWhichBuffer() {
+		return m_whichBuffer;
+	}
+
+	/**
+	 * This function determines if the buffer output should be enabled
+	 */
+	public DFEVar getOutputEnable() {
+		return m_outputEnable;
+	}
+
+	/**
+	 * This function determines if reference input should be enabled
+	 */
+	public DFEVar getReferenceInputEnable() {
+		return m_referenceInputEnable;
+	}
+
+	/**
+	 * This function returns the readEnable signal for the Memory of Buffer 1
+	 */
+	public DFEVar getReadEnableBuffer1() {
+		return m_readEnableBuffer1;
+	}
+
+	/**
+	 * This function returns the readEnable signal for the Memory of Buffer 2
+	 */
+	public DFEVar getReadEnableBuffer2() {
+		return m_readEnableBuffer2;
+	}
+
+}
