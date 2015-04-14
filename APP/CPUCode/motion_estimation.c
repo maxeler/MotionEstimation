@@ -236,8 +236,8 @@ int*** get_golden_output(int ** coords, int cycle, int width_in_blocks, int **sr
 		calculate_sad(src_block, ref_block, sad);
 
 		/* calculates the motion vector from the current source block to the reference block */
-		int x = 2 * (i % ME_windowX - (ME_windowX/2));
-		int y = 2 * (i / ME_windowX - (ME_windowY/2));
+		int x = i % ME_windowX - (ME_windowX/2);
+		int y = i / ME_windowX - (ME_windowY/2);
 
 
 		/* compares the cost of all the motion vectors and stores the minimum in the output[][][], cost is vector_cost + SAD */

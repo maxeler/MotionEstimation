@@ -234,9 +234,9 @@ public class CoarseMeKernel extends Kernel {
 	 */
 	private DFEVar[] getCurrentX(DFEVar col, int numPipes) {
 		DFEVar[] output = new DFEVar [numPipes];
-		output[0] = 2 * col.cast(dfeInt(col.getType().getTotalBits() + 2)) - CoarseMeScalars.windowX;
+		output[0] =  col.cast(dfeInt(col.getType().getTotalBits() + 2)) - CoarseMeScalars.windowX/2;
 		for (int i = 1; i < numPipes; i++) {
-			output[i] = output[0] + 2 * i;  // the blocks for all the pipes are next to each other. A simple loop generates the X for the other pipes
+			output[i] = output[0] + i;  // the blocks for all the pipes are next to each other. A simple loop generates the X for the other pipes
 		}
 
 		return output;
@@ -249,7 +249,7 @@ public class CoarseMeKernel extends Kernel {
 	private DFEVar getCurrentY(DFEVar row) {
 		DFEType type = dfeInt(row.getType().getTotalBits() + 3);
 
-		return 2 * (row.cast(type) - CoarseMeScalars.windowY/2);
+		return row.cast(type) - CoarseMeScalars.windowY/2;
 	}
 
 	/**
