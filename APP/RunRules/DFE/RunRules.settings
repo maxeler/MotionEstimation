@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <buildProfile>
 <common>
-<boardModel type="CORIA"/>
+<boardModel type="GALAVA"/>
 <simulation enabled="false"/>
 <enableMPCX enabled="false"/>
 <programArgument argument="blockSize" value="16"/>

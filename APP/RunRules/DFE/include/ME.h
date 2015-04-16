@@ -18,6 +18,7 @@ extern "C" {
 
 
 
+
 /**
  * \brief Basic static function for the interface 'default'.
  * 
@@ -25,9 +26,8 @@ extern "C" {
  * \param [in] inscalar_CoarseMeKernel_blocksToComplete Input scalar parameter "CoarseMeKernel.blocksToComplete".
  * \param [in] inscalar_CoarseMeKernel_fillBlocks Input scalar parameter "CoarseMeKernel.fillBlocks".
  * \param [in] inscalar_CoarseMeKernel_heightInBlocks Input scalar parameter "CoarseMeKernel.heightInBlocks".
- * \param [in] inscalar_CoarseMeKernel_lambda Input scalar parameter "CoarseMeKernel.lambda".
+ * \param [in] inscalar_CoarseMeKernel_heightPlusHaloInBlocks Input scalar parameter "CoarseMeKernel.heightPlusHaloInBlocks".
  * \param [in] inscalar_CoarseMeKernel_numBlocks Input scalar parameter "CoarseMeKernel.numBlocks".
- * \param [in] inscalar_CoarseMeKernel_pictureHeight Input scalar parameter "CoarseMeKernel.pictureHeight".
  * \param [in] inscalar_CoarseMeKernel_widthInBlocks Input scalar parameter "CoarseMeKernel.widthInBlocks".
  * \param [in] inscalar_CoarseMeKernel_widthPlusHaloInBlocks Input scalar parameter "CoarseMeKernel.widthPlusHaloInBlocks".
  * \param [in] instream_reference Stream "reference".
@@ -42,9 +42,8 @@ void ME(
 	uint64_t inscalar_CoarseMeKernel_blocksToComplete,
 	uint64_t inscalar_CoarseMeKernel_fillBlocks,
 	uint64_t inscalar_CoarseMeKernel_heightInBlocks,
-	uint64_t inscalar_CoarseMeKernel_lambda,
+	uint64_t inscalar_CoarseMeKernel_heightPlusHaloInBlocks,
 	uint64_t inscalar_CoarseMeKernel_numBlocks,
-	uint64_t inscalar_CoarseMeKernel_pictureHeight,
 	uint64_t inscalar_CoarseMeKernel_widthInBlocks,
 	uint64_t inscalar_CoarseMeKernel_widthPlusHaloInBlocks,
 	const void *instream_reference,
@@ -66,9 +65,8 @@ void ME(
  * \param [in] inscalar_CoarseMeKernel_blocksToComplete Input scalar parameter "CoarseMeKernel.blocksToComplete".
  * \param [in] inscalar_CoarseMeKernel_fillBlocks Input scalar parameter "CoarseMeKernel.fillBlocks".
  * \param [in] inscalar_CoarseMeKernel_heightInBlocks Input scalar parameter "CoarseMeKernel.heightInBlocks".
- * \param [in] inscalar_CoarseMeKernel_lambda Input scalar parameter "CoarseMeKernel.lambda".
+ * \param [in] inscalar_CoarseMeKernel_heightPlusHaloInBlocks Input scalar parameter "CoarseMeKernel.heightPlusHaloInBlocks".
  * \param [in] inscalar_CoarseMeKernel_numBlocks Input scalar parameter "CoarseMeKernel.numBlocks".
- * \param [in] inscalar_CoarseMeKernel_pictureHeight Input scalar parameter "CoarseMeKernel.pictureHeight".
  * \param [in] inscalar_CoarseMeKernel_widthInBlocks Input scalar parameter "CoarseMeKernel.widthInBlocks".
  * \param [in] inscalar_CoarseMeKernel_widthPlusHaloInBlocks Input scalar parameter "CoarseMeKernel.widthPlusHaloInBlocks".
  * \param [in] instream_reference Stream "reference".
@@ -84,9 +82,8 @@ max_run_t *ME_nonblock(
 	uint64_t inscalar_CoarseMeKernel_blocksToComplete,
 	uint64_t inscalar_CoarseMeKernel_fillBlocks,
 	uint64_t inscalar_CoarseMeKernel_heightInBlocks,
-	uint64_t inscalar_CoarseMeKernel_lambda,
+	uint64_t inscalar_CoarseMeKernel_heightPlusHaloInBlocks,
 	uint64_t inscalar_CoarseMeKernel_numBlocks,
-	uint64_t inscalar_CoarseMeKernel_pictureHeight,
 	uint64_t inscalar_CoarseMeKernel_widthInBlocks,
 	uint64_t inscalar_CoarseMeKernel_widthPlusHaloInBlocks,
 	const void *instream_reference,
@@ -105,9 +102,8 @@ typedef struct {
 	uint64_t inscalar_CoarseMeKernel_blocksToComplete; /**<  [in] Input scalar parameter "CoarseMeKernel.blocksToComplete". */
 	uint64_t inscalar_CoarseMeKernel_fillBlocks; /**<  [in] Input scalar parameter "CoarseMeKernel.fillBlocks". */
 	uint64_t inscalar_CoarseMeKernel_heightInBlocks; /**<  [in] Input scalar parameter "CoarseMeKernel.heightInBlocks". */
-	uint64_t inscalar_CoarseMeKernel_lambda; /**<  [in] Input scalar parameter "CoarseMeKernel.lambda". */
+	uint64_t inscalar_CoarseMeKernel_heightPlusHaloInBlocks; /**<  [in] Input scalar parameter "CoarseMeKernel.heightPlusHaloInBlocks". */
 	uint64_t inscalar_CoarseMeKernel_numBlocks; /**<  [in] Input scalar parameter "CoarseMeKernel.numBlocks". */
-	uint64_t inscalar_CoarseMeKernel_pictureHeight; /**<  [in] Input scalar parameter "CoarseMeKernel.pictureHeight". */
 	uint64_t inscalar_CoarseMeKernel_widthInBlocks; /**<  [in] Input scalar parameter "CoarseMeKernel.widthInBlocks". */
 	uint64_t inscalar_CoarseMeKernel_widthPlusHaloInBlocks; /**<  [in] Input scalar parameter "CoarseMeKernel.widthPlusHaloInBlocks". */
 	const void *instream_reference; /**<  [in] Stream "reference". */
