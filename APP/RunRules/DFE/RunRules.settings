@@ -30,7 +30,7 @@
 <remoteMachineName/>
 <scriptName/>
 </remoteExecution>
-<customDefinitions/>
+<customDefinitions>USE_SLIC:=1</customDefinitions>
 </cpuCode>
 <simulator>
 <deleteDRAM enabled="false"/>

@@ -1,5 +1,5 @@
 # --- User's custom definitions
-
+USE_SLIC:=1
 # ---
 
 MAXCOMPILER_QUOTE   := $(shell printf %q "$(MAXCOMPILERDIR)")
