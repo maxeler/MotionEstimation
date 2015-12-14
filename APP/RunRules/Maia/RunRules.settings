@@ -1,15 +1,18 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <buildProfile>
 <common>
-<boardModel type="CORIA"/>
-<simulation enabled="true"/>
+<boardModel type="MAIA"/>
+<simulation enabled="false"/>
 <enableMPCX enabled="false"/>
-<programArgument argument="numPipes" value="2"/>
+<programArgument argument="MPPRStartCT" value="1"/>
+<programArgument argument="MPPREndCT" value="16"/>
+<programArgument argument="MPPRThreads" value="1"/>
 <programArgument argument="blockSize" value="16"/>
+<programArgument argument="numPipes" value="2"/>
 </common>
 <maxFiles>
 <maxFile buildName="ME" buildOrUseExisting="build">
-<runConfiguration askBeforeAutoBuild="false">
+<runConfiguration askBeforeAutoBuild="true">
 <mainClass>motionEstimation.MeManager</mainClass>
 <maxHeapSize>2</maxHeapSize>
 </runConfiguration>
@@ -19,7 +22,7 @@
 </maxFiles>
 <cpuCode targetType="executable">
 <libraryName/>
-<exeName>MotionEstimation</exeName>
+<exeName>motionEstimation</exeName>
 <skin>
 <ancillaryReleaseInformation enabled="false">
 <dir name=""/>

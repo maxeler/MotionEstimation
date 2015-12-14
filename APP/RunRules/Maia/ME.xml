@@ -14,7 +14,7 @@
     </condition>
     <target name="all" depends="runresult"/>
     <target name="build">
-        <ant inheritAll="false" antfile="../RunRules/Simulation/ME_Build.xml"/>
+        <ant inheritAll="false" antfile="../RunRules/Maia/ME_Build.xml"/>
     </target>
     <target name="run" depends="build">
         <condition property="args" value="">
@@ -28,15 +28,15 @@
             <arg line="${args}"/>
             <classpath>
                 <pathelement path="${env.ANT_MAXELER_INTERNAL_MAXIDE_JARS}"/>
-                <pathelement path="../RunRules/Simulation/dist/bin"/>
+                <pathelement path="../RunRules/Maia/dist/bin"/>
                 <pathelement path="/network-raid/appgallery-app-tests/MotionEstimation/APP/EngineCode/maxjlibs.jar"/>
                 <pathelement path="${maxcompilerdirpath}"/>
                 <pathelement path="${EnvClassPath}"/>
             </classpath>
         </java>
-        <exec executable="${env.MAXCOMPILERDIR}/lib/MaxIDE/copyBuildResults.sh" newenvironment="false" dir="../RunRules/Simulation">
+        <exec executable="${env.MAXCOMPILERDIR}/lib/MaxIDE/copyBuildResults.sh" newenvironment="false" dir="../RunRules/Maia">
             <arg value="-p"/>
-            <arg value="Simulation"/>
+            <arg value="Maia"/>
         </exec>
     </target>
     <target name="runresult" depends="run">
@@ -49,14 +49,14 @@
         <fail if="java.run.fail" message="java run stage failed."/>
     </target>
     <target name="clean">
-        <ant inheritAll="false" antfile="../RunRules/Simulation/ME_Build.xml" target="clean"/>
+        <ant inheritAll="false" antfile="../RunRules/Maia/ME_Build.xml" target="clean"/>
     </target>
     <target name="jar" depends="build">
-        <mkdir dir="../RunRules/Simulation/dist/jar"/>
-        <copy includeemptydirs="false" todir="../RunRules/Simulation/dist/jar">
-            <fileset dir="../RunRules/Simulation/dist/bin" excludes="**/*.uad, **/*.ucd, **/*.uld, **/*.upd, **/*.udd, **/*.uod, **/*.usd, **/*.utd, **/*.uud, **/*.odd, **/*.ead, **/*.ecd, **/*.eld, **/*.epd, **/*.edd, **/*.eod, **/*.esd, **/*.etd, **/*.eud, **/*.urd*.uml, **/*.ecore, **/*.launch, **/*.java, **/*.maxj, **/package.html"/>
+        <mkdir dir="../RunRules/Maia/dist/jar"/>
+        <copy includeemptydirs="false" todir="../RunRules/Maia/dist/jar">
+            <fileset dir="../RunRules/Maia/dist/bin" excludes="**/*.uad, **/*.ucd, **/*.uld, **/*.upd, **/*.udd, **/*.uod, **/*.usd, **/*.utd, **/*.uud, **/*.odd, **/*.ead, **/*.ecd, **/*.eld, **/*.epd, **/*.edd, **/*.eod, **/*.esd, **/*.etd, **/*.eud, **/*.urd*.uml, **/*.ecore, **/*.launch, **/*.java, **/*.maxj, **/package.html"/>
         </copy>
-        <jar destfile="MeManager.jar" basedir="../RunRules/Simulation/dist/jar">
+        <jar destfile="MeManager.jar" basedir="../RunRules/Maia/dist/jar">
             <manifest>
                 <attribute name="Main-Class" value="motionEstimation.MeManager"/>
             </manifest>
