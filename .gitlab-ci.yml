@@ -116,7 +116,7 @@ run-Galava-MotionEstimation:
   script: *run-script
   stage: run-dfe
   tags:
-    - Galava
+    - galava
     - centos6
   dependencies:
     - make-Galava-MotionEstimation
@@ -128,14 +128,14 @@ run-Galava-MotionEstimation:
   script: *run-script
   stage: run-dfe
   tags:
-    - Galava
+    - galava
     - centos7
   dependencies:
     - make-Galava-test-MotionEstimation
 
 # Maia
 make-Maia-MotionEstimation:
-  image: $MAXCOMPILER_QUARTUS_CENTOS6_IMAGEE
+  image: $MAXCOMPILER_QUARTUS_CENTOS6_IMAGE
   variables:
     RUNRULE: Maia
     TARGET: build
@@ -171,7 +171,7 @@ run-Maia-MotionEstimation:
   script: *run-script
   stage: run-dfe
   tags:
-    - Maia
+    - maia
     - centos6
   dependencies:
     - make-Maia-MotionEstimation
@@ -183,7 +183,7 @@ run-Maia-MotionEstimation:
   script: *run-script
   stage: run-dfe
   tags:
-    - Maia
+    - maia
     - centos7
   dependencies:
     - make-Maia-test-MotionEstimation
@@ -227,7 +227,7 @@ make-Isca-MotionEstimation:
   script: *run-script
   stage: run-dfe
   tags:
-    - Isca
+    - isca
     - centos6
   dependencies:
     - make-Isca-MotionEstimation
@@ -240,7 +240,7 @@ make-Isca-MotionEstimation:
   script: *run-script
   stage: run-dfe
   tags:
-    - Isca
+    - isca
     - centos7
   dependencies:
     - make-Isca-test-MotionEstimation
@@ -283,7 +283,7 @@ make-Isca-MotionEstimation:
   script: *run-script
   stage: run-dfe
   tags:
-    - Vectis
+    - vectis
     - centos6
   dependencies:
     - make-Vectis-MotionEstimation
@@ -295,7 +295,7 @@ make-Isca-MotionEstimation:
   script: *run-script
   stage: run-dfe
   tags:
-    - Vectis
+    - vectis
     - centos7
   dependencies:
     - make-Vectis-test-MotionEstimation
@@ -338,7 +338,7 @@ make-Coria-MotionEstimation:
   script: *run-script
   stage: run-dfe
   tags:
-    - Coria
+    - coria
     - centos6
   dependencies:
     - make-Coria-MotionEstimation
@@ -350,7 +350,7 @@ make-Coria-MotionEstimation:
   script: *run-script
   stage: run-dfe
   tags:
-    - Coria
+    - coria
     - centos7
   dependencies:
     - make-Coria-test-MotionEstimation
