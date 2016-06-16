@@ -57,7 +57,7 @@ run-sim-MotionEstimation:
   tags:
     - maxcompiler-sim
 
-make-test-sim-MotionEstimation:
+.make-test-sim-MotionEstimation:
   image: $MAXCOMPILER_SIM_CENTOS7_IMAGE
   variables:
     RUNRULE: Simulation
@@ -67,7 +67,7 @@ make-test-sim-MotionEstimation:
   tags:
     - maxcompiler-sim
 
-run-test-sim-MotionEstimation:
+.run-test-sim-MotionEstimation:
   image: $MAXCOMPILER_SIM_CENTOS7_IMAGE
   variables:
     RUNRULE: Simulation
