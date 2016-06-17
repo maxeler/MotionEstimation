@@ -34,7 +34,7 @@ stages:
 #
 .run-template:
   script: &run-script
-    - APP/RunRules/$RUNRULE/binaries/`[ -n "$TEST" ] && echo me_test || echo motionEstimation`
+    - APP/RunRules/$RUNRULE/binaries/`[ -n "$TEST" ] && echo me_test || echo motionEstimation 11 9`
 
 # Simulation
 make-sim-MotionEstimation:
