@@ -16,38 +16,16 @@ stages:
 - run-dfe
 
 ##
-#  This template is used for building app for all DFE RunRules.
-#  sed is used in order to fail build if all cost tables fail to meet timing
-#  Required variables:
+# This template is used for building app for all DFE RunRules.
+# sed is used in order to fail build if all cost tables fail to meet timing
+# Required variables:
 #  - RUNRULE - RunRule for which we want to build app
 #  - TARGET - target for make file (build, build_test, runsim or runsim_test)
 #
-.make-template:
-  script: &make-script
+.make-template: &make-definition
+  script:
     - sed -i s/failonerror=\"false\"/failonerror=\"true\"/g APP/RunRules/$RUNRULE/ME.xml
     - make -C APP/CPUCode RUNRULE=$RUNRULE $TARGET
-##
-#  This template is used for running of an app for all DFE RunRules.
-#  Required variables:
-#  - RUNRULE - RunRule for which we want to build app
-#  - TEST    - if this variable is set run test
-#
-.run-template:
-  script: &run-script
-    - APP/RunRules/$RUNRULE/binaries/`[ -n "$TEST" ] && echo me_test || echo motionEstimation 11 9`
-
-##
-#
-#
-#
-#
-#
-.make-MotionEstimation-template: &make-MotionEstimation-definition
-  image: $IMAGE
-  script: *make-script
-  stage: make-dfe
-  tags:
-    - maxcompiler-dfe
   artifacts:
     paths:
       - APP/RunRules/$RUNRULE/maxfiles/*.max
@@ -56,46 +34,20 @@ stages:
       - APP/RunRules/$RUNRULE/binaries
 
 ##
+# This template is used for running of an app for all DFE RunRules.
+# Required variables:
+#  - RUNRULE - RunRule for which we want to build app
+#  - TEST    - if this variable is set run test
 #
-#
-#
-#
-#
-.make-test-MotionEstimation-template: &make-test-MotionEstimation-definition
-  image: $IMAGE
-  script: *make-script
-  stage: make-test-dfe
-  tags:
-    - maxcompiler-sim
-  artifacts:
-    paths:
-      - APP/RunRules/$RUNRULE/binaries
+.run-template:
+  script: &run-script
+    - APP/RunRules/$RUNRULE/binaries/`[ -n "$TEST" ] && echo me_test || echo motionEstimation 11 9`
 
 ##
+# In the following section some jobs are hidden because
+# the test or corresponding run rule hasn't been made yet
+# or particular dfe is not available to be run from ci job
 #
-#
-#
-#
-#
-.run-MotionEstimation-template: &run-MotionEstimation-definition
-  script: *run-script
-  stage: run-dfe
-  tags:
-    - $(echo $RUNRULE | tr '[:upper:]' '[:lower:]')
-    - centos6
-
-##
-#
-#
-#
-#
-#
-.run-test-MotionEstimation-template: &run-test-MotionEstimation-definition
-  script: *run-script
-  stage: run-dfe
-  tags:
-    - $(echo $RUNRULE | tr '[:upper:]' '[:lower:]')
-    - centos7
 
 # Simulation
 make-sim-MotionEstimation:
@@ -103,63 +55,73 @@ make-sim-MotionEstimation:
   variables:
     RUNRULE: Simulation
     TARGET: build
-  script: *make-script
   stage: make-sim
   tags:
     - maxcompiler-sim
+  <<: *make-definition
 
 run-sim-MotionEstimation:
   image: $MAXCOMPILER_SIM_CENTOS6_IMAGE
   variables:
     RUNRULE: Simulation
     TARGET: runsim
-  script: *make-script
   stage: run-sim
   tags:
     - maxcompiler-sim
+  <<: *make-definition
 
 .make-test-sim-MotionEstimation:
   image: $MAXCOMPILER_SIM_CENTOS7_IMAGE
   variables:
     RUNRULE: Simulation
     TARGET: build_test
-  script: *make-script
   stage: make-sim
   tags:
     - maxcompiler-sim
+  <<: *make-definition
 
 .run-test-sim-MotionEstimation:
   image: $MAXCOMPILER_SIM_CENTOS7_IMAGE
   variables:
     RUNRULE: Simulation
     TARGET: runsim_test
-  script: *make-script
   stage: run-sim
   tags:
     - maxcompiler-sim
+  <<: *make-definition
 
 # DFE builds and tests
 # Galava
 make-Galava-MotionEstimation:
+  image: $MAXCOMPILER_QUARTUS_CENTOS6_IMAGE
   variables:
-    IMAGE: $MAXCOMPILER_QUARTUS_CENTOS6_IMAGE
     RUNRULE: Galava
     TARGET: build
-  <<: *make-MotionEstimation-definition
+  stage: make-dfe
+  tags:
+    - maxcompiler-dfe
+  <<: *make-definition
 
 .make-Galava-test-MotionEstimation:
+  image: $MAXCOMPILER_SIM_CENTOS7_IMAGE
   variables:
-    IMAGE: $MAXCOMPILER_SIM_CENTOS7_IMAGE
     RUNRULE: Galava
     TARGET: build_test
-  <<: *make-test-MotionEstimation-definition
+  stage: make-test-dfe
+  tags:
+    - maxcompiler-sim
   dependencies:
     - make-Galava-MotionEstimation
+  <<: *make-definition
 
 run-Galava-MotionEstimation:
   variables:
     RUNRULE: Galava
-  <<: *run-MotionEstimation-definition
+  script: *run-script
+  stage: run-dfe
+  tags:
+    - galava
+    - centos6
   dependencies:
     - make-Galava-MotionEstimation
 
@@ -167,31 +129,45 @@ run-Galava-MotionEstimation:
   variables:
     RUNRULE: Galava
     TEST: exists
-  <<: *run-test-MotionEstimation-definition
+  script: *run-script
+  stage: run-dfe
+  tags:
+    - galava
+    - centos7
   dependencies:
     - make-Galava-test-MotionEstimation
 
 # Maia
 make-Maia-MotionEstimation:
+  image: $MAXCOMPILER_QUARTUS_CENTOS6_IMAGE
   variables:
-    IMAGE: $MAXCOMPILER_QUARTUS_CENTOS6_IMAGE
     RUNRULE: Maia
     TARGET: build
-  <<: *make-MotionEstimation-definition
+  stage: make-dfe
+  tags:
+    - maxcompiler-dfe
+  <<: *make-definition
 
 .make-Maia-test-MotionEstimation:
+  image: $MAXCOMPILER_SIM_CENTOS7_IMAGE
   variables:
-    IMAGE: $MAXCOMPILER_SIM_CENTOS7_IMAGE
     RUNRULE: Maia
     TARGET: build_test
-  <<: *make-test-MotionEstimation-definition
+  stage: make-test-dfe
+  tags:
+    - maxcompiler-sim
   dependencies:
     - make-Maia-MotionEstimation
+  <<: *make-definition
 
 run-Maia-MotionEstimation:
   variables:
     RUNRULE: Maia
-  <<: *run-MotionEstimation-definition
+  script: *run-script
+  stage: run-dfe
+  tags:
+    - maia
+    - centos6
   dependencies:
     - make-Maia-MotionEstimation
 
@@ -199,65 +175,91 @@ run-Maia-MotionEstimation:
   variables:
     RUNRULE: Maia
     TEST: exists
-  <<: *run-test-MotionEstimation-definition
+  script: *run-script
+  stage: run-dfe
+  tags:
+    - maia
+    - centos7
   dependencies:
     - make-Maia-test-MotionEstimation
 
 # Isca
 make-Isca-MotionEstimation:
+  image: $MAXCOMPILER_QUARTUS_CENTOS6_IMAGE
   variables:
-    IMAGE: $MAXCOMPILER_QUARTUS_CENTOS6_IMAGE
     RUNRULE: Isca
     TARGET: build
-  <<: *make-MotionEstimation-definition
+  stage: make-dfe
+  tags:
+    - maxcompiler-dfe
+  <<: *make-definition
 
 .make-Isca-test-MotionEstimation:
+  image: $MAXCOMPILER_SIM_CENTOS7_IMAGE
   variables:
-    IMAGE: $MAXCOMPILER_SIM_CENTOS7_IMAGE
     RUNRULE: Isca
     TARGET: build_test
-  <<: *make-test-MotionEstimation-definition
+  stage: make-test-dfe
+  tags:
+    - maxcompiler-sim
   dependencies:
     - make-Isca-MotionEstimation
+  <<: *make-definition
 
 .run-Isca-MotionEstimation:
-# Can not be run via ci job yet because Isca is in not available to be run from ci job
   variables:
     RUNRULE: Isca
-  <<: *run-MotionEstimation-definition
+  script: *run-script
+  stage: run-dfe
+  tags:
+    - isca
+    - centos6
   dependencies:
     - make-Isca-MotionEstimation
 
 .run-Isca-test-MotionEstimation:
-# Can not be run via ci job yet because Isca is in not available to be run from ci job
   variables:
     RUNRULE: Isca
     TEST: exists
-  <<: *run-test-MotionEstimation-definition
+  script: *run-script
+  stage: run-dfe
+  tags:
+    - isca
+    - centos7
   dependencies:
     - make-Isca-test-MotionEstimation
 
 # Vectis
 .make-Vectis-MotionEstimation:
+  image: $MAXCOMPILER_ISE_CENTOS6_IMAGE
   variables:
-    IMAGE: $MAXCOMPILER_ISE_CENTOS6_IMAGE
     RUNRULE: Vectis
     TARGET: build
-  <<: *make-MotionEstimation-definition
+  stage: make-dfe
+  tags:
+    - maxcompiler-dfe
+  <<: *make-definition
 
 .make-Vectis-test-MotionEstimation:
+  image: $MAXCOMPILER_SIM_CENTOS7_IMAGE
   variables:
-    IMAGE: $MAXCOMPILER_SIM_CENTOS7_IMAGE
     RUNRULE: Vectis
     TARGET: build_test
-  <<: *make-test-MotionEstimation-definition
+  stage: make-test-dfe
+  tags:
+    - maxcompiler-sim
   dependencies:
     - make-Vectis-MotionEstimation
+  <<: *make-definition
 
 .run-Vectis-MotionEstimation:
   variables:
     RUNRULE: Vectis
-  <<: *run-MotionEstimation-definition
+  script: *run-script
+  stage: run-dfe
+  tags:
+    - vectis
+    - centos6
   dependencies:
     - make-Vectis-MotionEstimation
 
@@ -265,31 +267,45 @@ make-Isca-MotionEstimation:
   variables:
     RUNRULE: Vectis
     TEST: exists
-  <<: *run-test-MotionEstimation-definition
+  script: *run-script
+  stage: run-dfe
+  tags:
+    - vectis
+    - centos7
   dependencies:
     - make-Vectis-test-MotionEstimation
 
 # Coria
 make-Coria-MotionEstimation:
+  image: $MAXCOMPILER_QUARTUS_CENTOS6_IMAGE
   variables:
-    IMAGE: $MAXCOMPILER_QUARTUS_CENTOS6_IMAGE
     RUNRULE: Coria
     TARGET: build
-  <<: *make-MotionEstimation-definition
+  stage: make-dfe
+  tags:
+    - maxcompiler-dfe
+  <<: *make-definition
 
 .make-Coria-test-MotionEstimation:
+  image: $MAXCOMPILER_SIM_CENTOS7_IMAGE
   variables:
-    IMAGE: $MAXCOMPILER_SIM_CENTOS7_IMAGE
     RUNRULE: Coria
     TARGET: build_test
-  <<: *make-test-MotionEstimation-definition
+  stage: make-test-dfe
+  tags:
+    - maxcompiler-sim
   dependencies:
     - make-Coria-MotionEstimation
+  <<: *make-definition
 
 .run-Coria-MotionEstimation:
   variables:
     RUNRULE: Coria
-  <<: *run-MotionEstimation-definition
+  script: *run-script
+  stage: run-dfe
+  tags:
+    - coria
+    - centos6
   dependencies:
     - make-Coria-MotionEstimation
 
@@ -297,6 +313,10 @@ make-Coria-MotionEstimation:
   variables:
     RUNRULE: Coria
     TEST: exists
-  <<: *run-test-MotionEstimation-definition
+  script: *run-script
+  stage: run-dfe
+  tags:
+    - coria
+    - centos7
   dependencies:
     - make-Coria-test-MotionEstimation
