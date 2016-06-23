@@ -5,7 +5,7 @@
 #  - MAXCOMPILER_SIM_CENTOS6_IMAGE: image from Centos 6 with MaxCompiler and MaxCompiler Simulator
 #  - MAXCOMPILER_SIM_CENTOS7_IMAGE: image from Centos 7 with MaxCompiler and MaxCompiler Simulator
 #  - MAXCOMPILER_ISE_CENTOS6_IMAGE: image from Centos 6 with MaxCompiler and Xilinx ISE
-#  - MAXCOMPILER_QUARTUS_CENTOS6_IMAGE: image from Centos 6 with MaxCompiler andQuartus II
+#  - MAXCOMPILER_QUARTUS_CENTOS6_IMAGE: image from Centos 6 with MaxCompiler and Quartus II
 #
 
 stages:
@@ -35,6 +35,67 @@ stages:
 .run-template:
   script: &run-script
     - APP/RunRules/$RUNRULE/binaries/`[ -n "$TEST" ] && echo me_test || echo motionEstimation 11 9`
+
+##
+#
+#
+#
+#
+#
+.make-MotionEstimation-template: &make-MotionEstimation-definition
+  image: $IMAGE
+  script: *make-script
+  stage: make-dfe
+  tags:
+    - maxcompiler-dfe
+  artifacts:
+    paths:
+      - APP/RunRules/$RUNRULE/maxfiles/*.max
+      - APP/RunRules/$RUNRULE/maxfiles/*.h
+      - APP/RunRules/$RUNRULE/include/*.h
+      - APP/RunRules/$RUNRULE/binaries
+
+##
+#
+#
+#
+#
+#
+.make-test-MotionEstimation-template: &make-test-MotionEstimation-definition
+  image: $IMAGE
+  script: *make-script
+  stage: make-test-dfe
+  tags:
+    - maxcompiler-sim
+  artifacts:
+    paths:
+      - APP/RunRules/$RUNRULE/binaries
+
+##
+#
+#
+#
+#
+#
+.run-MotionEstimation-template: &run-MotionEstimation-definition
+  script: *run-script
+  stage: run-dfe
+  tags:
+    - $(echo $RUNRULE | tr '[:upper:]' '[:lower:]')
+    - centos6
+
+##
+#
+#
+#
+#
+#
+.run-test-MotionEstimation-template: &run-test-MotionEstimation-definition
+  script: *run-script
+  stage: run-dfe
+  tags:
+    - $(echo $RUNRULE | tr '[:upper:]' '[:lower:]')
+    - centos7
 
 # Simulation
 make-sim-MotionEstimation:
@@ -80,44 +141,25 @@ run-sim-MotionEstimation:
 # DFE builds and tests
 # Galava
 make-Galava-MotionEstimation:
-  image: $MAXCOMPILER_QUARTUS_CENTOS6_IMAGE
   variables:
+    IMAGE: $MAXCOMPILER_QUARTUS_CENTOS6_IMAGE
     RUNRULE: Galava
     TARGET: build
-  script: *make-script
-  stage: make-dfe
-  tags:
-    - maxcompiler-dfe
-  artifacts:
-    paths:
-      - APP/RunRules/Galava/maxfiles/*.max
-      - APP/RunRules/Galava/maxfiles/*.h
-      - APP/RunRules/Galava/include/*.h
-      - APP/RunRules/Galava/binaries
+  <<: *make-MotionEstimation-definition
 
 .make-Galava-test-MotionEstimation:
-  image: $MAXCOMPILER_SIM_CENTOS7_IMAGE
   variables:
+    IMAGE: $MAXCOMPILER_SIM_CENTOS7_IMAGE
     RUNRULE: Galava
     TARGET: build_test
-  script: *make-script
-  stage: make-test-dfe
-  tags:
-    - maxcompiler-sim
+  <<: *make-test-MotionEstimation-definition
   dependencies:
     - make-Galava-MotionEstimation
-  artifacts:
-    paths:
-      - APP/RunRules/Galava/binaries
 
 run-Galava-MotionEstimation:
   variables:
     RUNRULE: Galava
-  script: *run-script
-  stage: run-dfe
-  tags:
-    - galava
-    - centos6
+  <<: *run-MotionEstimation-definition
   dependencies:
     - make-Galava-MotionEstimation
 
@@ -125,54 +167,31 @@ run-Galava-MotionEstimation:
   variables:
     RUNRULE: Galava
     TEST: exists
-  script: *run-script
-  stage: run-dfe
-  tags:
-    - galava
-    - centos7
+  <<: *run-test-MotionEstimation-definition
   dependencies:
     - make-Galava-test-MotionEstimation
 
 # Maia
 make-Maia-MotionEstimation:
-  image: $MAXCOMPILER_QUARTUS_CENTOS6_IMAGE
   variables:
+    IMAGE: $MAXCOMPILER_QUARTUS_CENTOS6_IMAGE
     RUNRULE: Maia
     TARGET: build
-  script: *make-script
-  stage: make-dfe
-  tags:
-    - maxcompiler-dfe
-  artifacts:
-    paths:
-      - APP/RunRules/Maia/maxfiles/*.max
-      - APP/RunRules/Maia/maxfiles/*.h
-      - APP/RunRules/Maia/include/*.h
-      - APP/RunRules/Maia/binaries
+  <<: *make-MotionEstimation-definition
 
 .make-Maia-test-MotionEstimation:
-  image: $MAXCOMPILER_SIM_CENTOS7_IMAGE
   variables:
+    IMAGE: $MAXCOMPILER_SIM_CENTOS7_IMAGE
     RUNRULE: Maia
     TARGET: build_test
-  script: *make-script
-  stage: make-test-dfe
-  tags:
-    - maxcompiler-sim
+  <<: *make-test-MotionEstimation-definition
   dependencies:
     - make-Maia-MotionEstimation
-  artifacts:
-    paths:
-      - APP/RunRules/Maia/binaries
 
 run-Maia-MotionEstimation:
   variables:
     RUNRULE: Maia
-  script: *run-script
-  stage: run-dfe
-  tags:
-    - maia
-    - centos6
+  <<: *run-MotionEstimation-definition
   dependencies:
     - make-Maia-MotionEstimation
 
@@ -180,55 +199,32 @@ run-Maia-MotionEstimation:
   variables:
     RUNRULE: Maia
     TEST: exists
-  script: *run-script
-  stage: run-dfe
-  tags:
-    - maia
-    - centos7
+  <<: *run-test-MotionEstimation-definition
   dependencies:
     - make-Maia-test-MotionEstimation
 
 # Isca
 make-Isca-MotionEstimation:
-  image: $MAXCOMPILER_QUARTUS_CENTOS6_IMAGE
   variables:
+    IMAGE: $MAXCOMPILER_QUARTUS_CENTOS6_IMAGE
     RUNRULE: Isca
     TARGET: build
-  script: *make-script
-  stage: make-dfe
-  tags:
-    - maxcompiler-dfe
-  artifacts:
-    paths:
-      - APP/RunRules/Isca/maxfiles/*.max
-      - APP/RunRules/Isca/maxfiles/*.h
-      - APP/RunRules/Isca/include/*.h
-      - APP/RunRules/Isca/binaries
+  <<: *make-MotionEstimation-definition
 
 .make-Isca-test-MotionEstimation:
-  image: $MAXCOMPILER_SIM_CENTOS7_IMAGE
   variables:
+    IMAGE: $MAXCOMPILER_SIM_CENTOS7_IMAGE
     RUNRULE: Isca
     TARGET: build_test
-  script: *make-script
-  stage: make-test-dfe
-  tags:
-    - maxcompiler-sim
+  <<: *make-test-MotionEstimation-definition
   dependencies:
     - make-Isca-MotionEstimation
-  artifacts:
-    paths:
-      - APP/RunRules/Isca/binaries
 
 .run-Isca-MotionEstimation:
 # Can not be run via ci job yet because Isca is in not available to be run from ci job
   variables:
     RUNRULE: Isca
-  script: *run-script
-  stage: run-dfe
-  tags:
-    - isca
-    - centos6
+  <<: *run-MotionEstimation-definition
   dependencies:
     - make-Isca-MotionEstimation
 
@@ -237,54 +233,31 @@ make-Isca-MotionEstimation:
   variables:
     RUNRULE: Isca
     TEST: exists
-  script: *run-script
-  stage: run-dfe
-  tags:
-    - isca
-    - centos7
+  <<: *run-test-MotionEstimation-definition
   dependencies:
     - make-Isca-test-MotionEstimation
 
 # Vectis
 .make-Vectis-MotionEstimation:
-  image: $MAXCOMPILER_ISE_CENTOS6_IMAGE
   variables:
+    IMAGE: $MAXCOMPILER_ISE_CENTOS6_IMAGE
     RUNRULE: Vectis
     TARGET: build
-  script: *make-script
-  stage: make-dfe
-  tags:
-    - maxcompiler-dfe
-  artifacts:
-    paths:
-      - APP/RunRules/Vectis/maxfiles/*.max
-      - APP/RunRules/Vectis/maxfiles/*.h
-      - APP/RunRules/Vectis/include/*.h
-      - APP/RunRules/Vectis/binaries
+  <<: *make-MotionEstimation-definition
 
 .make-Vectis-test-MotionEstimation:
-  image: $MAXCOMPILER_SIM_CENTOS7_IMAGE
   variables:
+    IMAGE: $MAXCOMPILER_SIM_CENTOS7_IMAGE
     RUNRULE: Vectis
     TARGET: build_test
-  script: *make-script
-  stage: make-test-dfe
-  tags:
-    - maxcompiler-sim
+  <<: *make-test-MotionEstimation-definition
   dependencies:
     - make-Vectis-MotionEstimation
-  artifacts:
-    paths:
-      - APP/RunRules/Vectis/binaries
 
 .run-Vectis-MotionEstimation:
   variables:
     RUNRULE: Vectis
-  script: *run-script
-  stage: run-dfe
-  tags:
-    - vectis
-    - centos6
+  <<: *run-MotionEstimation-definition
   dependencies:
     - make-Vectis-MotionEstimation
 
@@ -292,54 +265,31 @@ make-Isca-MotionEstimation:
   variables:
     RUNRULE: Vectis
     TEST: exists
-  script: *run-script
-  stage: run-dfe
-  tags:
-    - vectis
-    - centos7
+  <<: *run-test-MotionEstimation-definition
   dependencies:
     - make-Vectis-test-MotionEstimation
 
 # Coria
 make-Coria-MotionEstimation:
-  image: $MAXCOMPILER_QUARTUS_CENTOS6_IMAGE
   variables:
+    IMAGE: $MAXCOMPILER_QUARTUS_CENTOS6_IMAGE
     RUNRULE: Coria
     TARGET: build
-  script: *make-script
-  stage: make-dfe
-  tags:
-    - maxcompiler-dfe
-  artifacts:
-    paths:
-      - APP/RunRules/Coria/maxfiles/*.max
-      - APP/RunRules/Coria/maxfiles/*.h
-      - APP/RunRules/Coria/include/*.h
-      - APP/RunRules/Coria/binaries
+  <<: *make-MotionEstimation-definition
 
 .make-Coria-test-MotionEstimation:
-  image: $MAXCOMPILER_SIM_CENTOS7_IMAGE
   variables:
+    IMAGE: $MAXCOMPILER_SIM_CENTOS7_IMAGE
     RUNRULE: Coria
     TARGET: build_test
-  script: *make-script
-  stage: make-test-dfe
-  tags:
-    - maxcompiler-sim
+  <<: *make-test-MotionEstimation-definition
   dependencies:
     - make-Coria-MotionEstimation
-  artifacts:
-    paths:
-      - APP/RunRules/Coria/binaries
 
 .run-Coria-MotionEstimation:
   variables:
     RUNRULE: Coria
-  script: *run-script
-  stage: run-dfe
-  tags:
-    - coria
-    - centos6
+  <<: *run-MotionEstimation-definition
   dependencies:
     - make-Coria-MotionEstimation
 
@@ -347,10 +297,6 @@ make-Coria-MotionEstimation:
   variables:
     RUNRULE: Coria
     TEST: exists
-  script: *run-script
-  stage: run-dfe
-  tags:
-    - coria
-    - centos7
+  <<: *run-test-MotionEstimation-definition
   dependencies:
     - make-Coria-test-MotionEstimation
