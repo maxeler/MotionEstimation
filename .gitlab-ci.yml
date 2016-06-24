@@ -27,6 +27,7 @@ stages:
     - sed -i s/failonerror=\"false\"/failonerror=\"true\"/g APP/RunRules/$RUNRULE/ME.xml
     - make -C APP/CPUCode RUNRULE=$RUNRULE $TARGET
   artifacts:
+    expire_in: 30 days
     paths:
       - APP/RunRules/$RUNRULE/maxfiles/*.max
       - APP/RunRules/$RUNRULE/maxfiles/*.h
@@ -230,7 +231,7 @@ make-Isca-MotionEstimation:
     - make-Isca-test-MotionEstimation
 
 # Vectis
-.make-Vectis-MotionEstimation:
+make-Vectis-MotionEstimation:
   image: $MAXCOMPILER_ISE_CENTOS6_IMAGE
   variables:
     RUNRULE: Vectis
@@ -252,7 +253,7 @@ make-Isca-MotionEstimation:
     - make-Vectis-MotionEstimation
   <<: *make-definition
 
-.run-Vectis-MotionEstimation:
+run-Vectis-MotionEstimation:
   variables:
     RUNRULE: Vectis
   script: *run-script
