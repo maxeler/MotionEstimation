@@ -48,6 +48,25 @@ build: maxfiles
 
 maxfiles: $(MAXFILES_MAX)
 
+#
+# MaxFile: ME
+#
+
+
+BUILDNAME_MAXFILE_1:=ME
+MAXFILE_1:=ME.max
+
+include/ME.h: maxfiles/ME.h
+	cp $< $@
+
+maxfiles/ME.max maxfiles/ME.h:
+# Ensure that maxfiles do not get build by this Makefile when running in MaxIDE
+ifndef MAXIDE_RUN
+	test -f $@ || env  MAX_BUILDPARAMS=" DFEModel=VECTIS  target=DFE  maxFileName=ME MPPRStartCT='1' MPPREndCT='16' MPPRThreads='1' blockSize='16' numPipes='2' "  ant -v -f ME.xml
+else
+	test -f $@ || ( echo 'Maxfile unavailable: $@' >/dev/stderr ; exit 1 )
+endif
+
 
 
 startsim:

@@ -26,8 +26,8 @@
         </copy>
         <maxjcompiler srcdir="src" destdir="../RunRules/Isca/dist/bin" debug="true" debuglevel="lines,vars,source" source="1.6" target="1.6" failonerror="true">
             <classpath>
-                <pathelement path="/network-raid/appgallery-app-tests/MotionEstimation/APP/EngineCode/maxjlibs.jar"/>
                 <pathelement path="${maxcompilerdirpath}"/>
+                <pathelement path="../../maxpower/bin"/>
                 <pathelement path="${EnvClassPath}"/>
             </classpath>
         </maxjcompiler>
